@@ -1,53 +1,46 @@
 # TarIterators.jl
 
-[![Build Status](https://travis-ci.org/JuliaLang/TarIterators.jl.svg?branch=master)](https://travis-ci.org/JuliaLang/TarIterators.jl)
-[![Codecov](https://codecov.io/gh/JuliaLang/TarIterators.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaLang/TarIterators.jl)
+[![Build Status](https://travis-ci.org/KlausC/TarIterators.jl.svg?branch=master)](https://travis-ci.org/KlausC/TarIterators.jl)
+[![Codecov](https://codecov.io/gh/KlausC/TarIterators.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/KlausC/TarIterators.jl)
 
 The `TarIterators` package can read from individual elements of POSIX TAR archives ("tarballs") as specified in [POSIX 1003.1-2001](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/pax.html).
 
-## Design & Features
-
-### File Types
-
-### Time Stamps
-
-### Users & Groups
-
-### Permissions
-
-### Reproducibility
-
 ## API & Usage
 
-The public API of `Tar` includes three functions and one type:
+The public API of `TarIterators` includes only standard functions and one type:
 
-* `open` — creates a tarball from an on-disk file tree
-* `iterate` — extracts a tarball to an on-disk file tree
-* `TarIterator` — struct representing a file stream opened for reading a TAR file  
+* `TarIterator` — struct representing a file stream opened for reading a TAR file
+*                 may be restricted by predicates.
+* `iterate` — deliver pairs of `Tar.header` and `BoundedInputStream` for each element
+* `close` - close wrapped stream
+* `open`  - deliver `BoundedInputStream` for the next element of tar file
+* `seekstart` - reset input to start
 
 ### Usage Example
 
 ```julia
     using TarIterators
 
-    for (h, io) in Tar.Iterator("/tmp/AB.tar.gz")
-        if h.type == :file
-            x = read(io)
-            ...
-        end
-        close(io)
+    ti = Tar.Iterator("/tmp/AB.tar", :file)
+    for (h, io) in ti
+        x = read(io), String
+    end
+
+    # reset to start
+    seekstart(ti) 
+
+    # or equivalently
+    open(ti) do h, io
+        read(io, String)
     end
 
     using CodecZlib
-    io = GzipDecompressorStream(open("/tmp/AB.tar.gz"))
+    cio = GzipDecompressorStream(open("/tmp/AB.tar.gz"))
 
-    # process first file according to filter criteria
-    open(Tar.Iterator(io, "B", close_stream=true) do tio
-        x = read(tio, 10)
-        ...
-    end
-    # `io` is closed together with `tio`
-
+    # process first file named "B"
+    io = open(Tar.Iterator(io, "B", close_stream=true)
+    x = read(io, 10)
+    close(io) # cio is closed implicitly - by default that is not the case
 ```
 <!-- BEGIN: copied from inline doc strings -->
 
