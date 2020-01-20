@@ -4,7 +4,6 @@ export TarIterator
 
 using Tar
 using BoundedStreams
-using CodecZlib
 
 """
     TarIterator(io[, condition])
@@ -30,9 +29,6 @@ function TarIterator(source::T, a::F=nothing; close_stream::Bool=false) where {T
 end
 function TarIterator(file::AbstractString, f=nothing; close_stream::Bool=false)
     source = open(file)
-    if endswith(file, ".tar.gz") || endswith(file, ".tgz")
-        source = GzipDecompressorStream(source)
-    end
     TarIterator(source, f, close_stream=close_stream)
 end
 
@@ -41,9 +37,10 @@ function Base.iterate(ti::TarIterator, status=nothing)
     status != nothing && close(status)
     h = Tar.read_header(stream)
     while h !== nothing
-        s = ((h.size - 1) >> 9 + 1) << 9 # align to 512 bytes
+        s = align(h.size)
         if ti.filter(h)
-            io = BoundedInputStream(stream, h.size, close=ti.closestream ? BoundedStreams.CLOSE : s)
+            closeop = ti.closestream ? BoundedStreams.CLOSE : s
+            io = BoundedInputStream(stream, h.size, close=closeop)
             return (h, io), io
         end
         skip(stream, s)
@@ -51,6 +48,8 @@ function Base.iterate(ti::TarIterator, status=nothing)
     end
     nothing
 end
+
+align(pos::Integer) = mod(-pos, 512) + pos
 
 selector(a::Union{AbstractString,Nothing,Symbol,Regex}) = h::Tar.Header -> selected(h, a)
 selector(f::Function) = f

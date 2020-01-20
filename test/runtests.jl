@@ -3,6 +3,7 @@ using Test
 using TarIterators
 using BoundedStreams
 using Tar
+using CodecZlib
 
 # setup test file
 dir = mkpath(abspath(@__FILE__, "..", "data", "ball"))
@@ -17,9 +18,18 @@ end
 cd(abspath(dir, ".."))
 tarfile = "test.tar"
 run(`sh -c "tar -cf $tarfile ball"`)
+run(`sh -c "gzip <$tarfile >$tarfile.gz"`)
 
-@testset "reading all elements of tar file" begin
-    ti = TarIterator(tarfile)
+function opener(file::AbstractString, f=nothing; close_stream::Bool=false)
+    source = open(file)
+    if endswith(file, ".tar.gz") || endswith(file, ".tgz")
+        source = GzipDecompressorStream(source)
+    end
+    TarIterator(source, f, close_stream=close_stream)
+end
+
+@testset "reading all elements of $tarfile" for tarfile = (tarfile, tarfile*".gz")
+    ti = opener(tarfile)
     @test ti != nothing
     s = iterate(ti)
     @test s isa Tuple
@@ -29,10 +39,10 @@ run(`sh -c "tar -cf $tarfile ball"`)
     @test h.type == :directory
     @test h.path == "ball/"
     @test close(ti) == nothing
-    ti = TarIterator(tarfile)
+    ti = opener(tarfile)
     @test open(ti) isa BoundedInputStream
     
-    @test seekstart(ti) === ti.stream
+    seekstart(ti)
     res1 = Any[]
     for (h, io) in ti
         push!(res1, h)
@@ -52,3 +62,14 @@ run(`sh -c "tar -cf $tarfile ball"`)
 end
 
 
+@testset "iterations predicate $p" for (p,m) in ((nothing,11),
+                                                 ("ball/b.dat", 1),
+                                                 (r"^ball/(|.*/)a\.dat",2),
+                                                 (:file,8),
+                                                 (h->h.type == :file, 8))
+    n = 0
+    open(TarIterator(tarfile, p)) do h, io
+        n += 1
+    end
+    @test n == m
+end
