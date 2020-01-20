@@ -5,31 +5,33 @@ export TarIterator
 using Tar
 using BoundedStreams
 
-"""
-    TarIterator(io[, condition])
-
-Iterator over an input stream open for reading. The data in the stream must obey
-the `tar` file format understood by package `Tar`.
-If `condition` is given, only tar elements with matching path name are processed.
-
-Examples:
-    io = open("/tmp/abc.tar") 
-    TarIterator(io, "y")        # only entry with name "y" 
-    TarIterator(io, r".*[.]txt") # only entries ending with ".txt"
-    TarIterator(io, x -> x < "y") # only entries lexically before "y"
-"""
 struct TarIterator{T,F<:Function}
     stream::T
     filter::F
     closestream::Bool
 end
 
+"""
+    TarIterator(io[, predicate])
+
+Iterator over an input stream open for reading. `io` may also be pathname of an existing 
+tar file. The data in the stream or file must obey the `tar` file format understood by
+package `Tar`.
+If `predicate` is given, only tar elements with matching header data are processed.
+
+Examples:
+    io = open("/tmp/abc.tar") 
+    TarIterator(io)              # all entries 
+    TarIterator(io, :file)       # all entries of file type 
+    TarIterator(io, "y")         # only entry with name "y" 
+    TarIterator(io, r".*[.]txt") # all entries ending with ".txt"
+    TarIterator(io, h -> h.size > 100) # only entries with data size > 100
+"""
 function TarIterator(source::T, a::F=nothing; close_stream::Bool=false) where {T,F}
     TarIterator(source, selector(a), close_stream)
 end
 function TarIterator(file::AbstractString, f=nothing; close_stream::Bool=false)
-    source = open(file)
-    TarIterator(source, f, close_stream=close_stream)
+    TarIterator(open(file), f, close_stream=close_stream)
 end
 
 function Base.iterate(ti::TarIterator, status=nothing)
@@ -49,25 +51,55 @@ function Base.iterate(ti::TarIterator, status=nothing)
     nothing
 end
 
+# align to TAR block size
 align(pos::Integer) = mod(-pos, 512) + pos
 
-selector(a::Union{AbstractString,Nothing,Symbol,Regex}) = h::Tar.Header -> selected(h, a)
+# predicates processing
 selector(f::Function) = f
-selected(h::Tar.Header, ::Nothing) = true
-selected(h::Tar.Header, a::AbstractString) = h.path == a
-selected(h::Tar.Header, s::Symbol) = h.type == s
-function selected(h::Tar.Header, r::Regex)
+selector(a::Tuple) = function AND(h::Tar.Header)
+    for f in a
+        if !selector(f)(h)
+            return false
+        end
+    end
+    true
+end
+selector(a::AbstractVector) = function OR(h::Tar.Header)
+    for f in a
+        if selector(f)(h)
+            return true
+        end
+    end
+    false
+end
+selector(a::Union{AbstractString,Nothing,Symbol,Regex}) = h::Tar.Header -> predicate(h, a)
+predicate(h::Tar.Header, ::Nothing) = true
+predicate(h::Tar.Header, a::AbstractString) = h.path == a
+predicate(h::Tar.Header, s::Symbol) = h.type == s
+function predicate(h::Tar.Header, r::Regex)
     fn = h.path
     m = match(r, fn)
     m != nothing && m.match == fn
 end
 
+"""
+    open(ti::TarIterator)::BoundedInputStream
+
+Skip to the first entry in tar stream according to predicates of `ti` and return
+an open input stream, which allows to read data part of this entry.
+"""
 function Base.open(ti::TarIterator)
     s = iterate(ti)
     s == nothing && throw(EOFError())
     s[1][2]
 end
 
+"""
+    open(ti::TarIterator) do h, io; ... end
+
+Process all tar entries selected by `ti` and provide `h::Tar.Header` and
+`io::BoundedInputStream` to the called function. 
+"""
 function Base.open(f::Function, ti::TarIterator)
     for (h, io) in ti
         f(h, io)

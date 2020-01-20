@@ -62,11 +62,13 @@ end
 end
 
 
-@testset "iterations predicate $p" for (p,m) in ((nothing,11),
+@testset "iterations predicate $p" for (p,m) in [(nothing, 11),
                                                  ("ball/b.dat", 1),
-                                                 (r"^ball/(|.*/)a\.dat",2),
-                                                 (:file,8),
-                                                 (h->h.type == :file, 8))
+                                                 (r"^ball/(|.*/)a\.dat", 2),
+                                                 (:file, 8),
+                                                 (h->h.type == :file, 8),
+                                                 ((:file, h->h.size>10), 2),
+                                                 ([:directory, h->h.size>10], 5)]
     n = 0
     open(TarIterator(tarfile, p)) do h, io
         n += 1
