@@ -1,10 +1,10 @@
 
 using Test
 using TarIterators
-using .BoundedStreams
+using BoundedStreams
 using Tar
 using CodecZlib
+using TranscodingStreams
 
-@testset "BoundedStreams" begin include("boundedstreams.jl"); end
 @testset "TarIterators" begin include("tariterators.jl"); end
 

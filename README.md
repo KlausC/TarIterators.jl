@@ -38,7 +38,7 @@ The public API of `TarIterators` includes only standard functions and one type:
     cio = GzipDecompressorStream(open("/tmp/AB.tar.gz"))
 
     # process first file named "B"
-    io = open(Tar.Iterator(io, "B", close_stream=true)
+    io = open(Tar.Iterator(cio, "B", close_stream=true)
     x = read(io, 10)
     close(io) # cio is closed implicitly - by default that is not the case
 ```
