@@ -9,39 +9,40 @@ The `TarIterators` package can read from individual elements of POSIX TAR archiv
 
 The public API of `TarIterators` includes only standard functions and one type:
 
-* `TarIterator` — struct representing a file stream opened for reading a TAR file
-*                 may be restricted by predicates.
+* `TarIterator` — struct representing a file stream opened for reading a TAR file, may be restricted by predicates
+
 * `iterate` — deliver pairs of `Tar.header` and `BoundedInputStream` for each element
+
 * `close` - close wrapped stream
-* `open`  - deliver `BoundedInputStream` for the next element of tar file
+* `open`  - deliver `BoundedInputStream` for the next element of tar file or process all elements in a loop
 * `seekstart` - reset input to start
 
 ### Usage Example
 
 ```julia
+
     using TarIterators
 
-    ti = Tar.Iterator("/tmp/AB.tar", :file)
+    ti = TarIterator("/tmp/AB.tar", :file)
     for (h, io) in ti
-        x = read(io), String
+        x = read(io, String)
+        println(x)
     end
 
     # reset to start
-    seekstart(ti) 
+    seekstart(ti)
 
     # or equivalently
     open(ti) do h, io
-        read(io, String)
+        x = read(io, String)
+        println(x)
     end
 
     using CodecZlib
     cio = GzipDecompressorStream(open("/tmp/AB.tar.gz"))
 
     # process first file named "B"
-    io = open(Tar.Iterator(cio, "B", close_stream=true)
+    io = open(TarIterator(cio, "B", close_stream=true))
     x = read(io, 10)
-    close(io) # cio is closed implicitly - by default that is not the case
+    close(io) # cio is closed implicitly
 ```
-<!-- BEGIN: copied from inline doc strings -->
-
-<!-- END: copied from inline doc strings -->
