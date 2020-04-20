@@ -60,6 +60,13 @@ function Base.iterate(ti::TarIterator, status=nothing)
     nothing
 end
 
+function passi()
+    println("Hallo Passi!")
+end
+
+passi(was) = println("$was - Passi!")
+passi(x::Irrational) = println(Float64(x))
+
 # align to TAR block size
 align(pos::Integer) = mod(-pos, 512) + pos
 
