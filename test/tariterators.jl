@@ -41,7 +41,6 @@ end
         push!(res1, h)
         push!(res1, read(io, String))
     end
-    @test !eof(ti.stream)
     @test length(res1) == 22
 
     seekstart(ti)
