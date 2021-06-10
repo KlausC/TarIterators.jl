@@ -23,7 +23,7 @@ end
 
 @testset "reading all elements of $tarfile" for tarfile = (tarfile, tarfile*".gz")
     ti = opener(tarfile)
-    @test ti != nothing
+    @test ti !== nothing
     s = iterate(ti)
     @test s isa Tuple
     (h, io), st = s
@@ -31,7 +31,7 @@ end
     @test io isa BoundedInputStream
     @test h.type == :directory
     @test h.path == "ball/"
-    @test close(ti) == nothing
+    @test close(ti) === nothing
     ti = opener(tarfile)
     @test open(ti) isa BoundedInputStream
     

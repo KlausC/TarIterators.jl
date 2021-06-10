@@ -45,7 +45,7 @@ end
 
 function Base.iterate(ti::TarIterator, status=nothing)
     stream = ti.stream
-    status != nothing && close(status)
+    status !== nothing && close(status)
     h = Tar.read_header(stream)
     while h !== nothing
         s = align(h.size)
@@ -88,7 +88,7 @@ predicate(h::Tar.Header, s::Symbol) = h.type == s
 function predicate(h::Tar.Header, r::Regex)
     fn = h.path
     m = match(r, fn)
-    m != nothing && m.match == fn
+    m !== nothing && m.match == fn
 end
 
 """
@@ -99,7 +99,7 @@ an open input stream, which allows to read data part of this entry.
 """
 function Base.open(ti::TarIterator)
     s = iterate(ti)
-    s == nothing && throw(EOFError())
+    s === nothing && throw(EOFError())
     s[1][2]
 end
 
