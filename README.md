@@ -1,7 +1,6 @@
 # TarIterators.jl
 
-[![Build Status](https://travis-ci.org/KlausC/TarIterators.jl.svg?branch=master)](https://travis-ci.org/KlausC/TarIterators.jl)
-[![Codecov](https://codecov.io/gh/KlausC/TarIterators.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/KlausC/TarIterators.jl)
+[![Build Status][gha-img]][gha-url]     [![Coverage Status][codecov-img]][codecov-url]
 
 The `TarIterators` package can read from individual elements of POSIX TAR archives ("tarballs") as specified in [POSIX 1003.1-2001](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/pax.html).
 
@@ -46,3 +45,8 @@ The public API of `TarIterators` includes only standard functions and one type:
     x = read(io, 10)
     close(io) # cio is closed implicitly
 ```
+
+[gha-img]: https://github.com/KlausC/TarIterators.jl/workflows/CI/badge.svg
+[gha-url]: https://github.com/KlausC/TarIterators.jl/actions?query=workflow%3ACI
+[codecov-img]: https://codecov.io/gh/KlausC/TarIterators.jl/branch/master/graph/badge.svg
+[codecov-url]: https://codecov.io/gh/KlausC/TarIterators.jl
